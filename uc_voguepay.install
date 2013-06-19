@@ -1,0 +1,239 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the uc_voguepay module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function uc_voguepay_requirements($phase) {
+  $t = get_t();
+
+  $has_simplexml = extension_loaded('SimpleXML');
+  $requirements['uc_vp_simplexml'] = array(
+    'title' => $t('SimpleXML'),
+    'value' => $has_simplexml ? $t('Enabled') : $t('Not found'),
+  );
+  if (!$has_simplexml) {
+    $requirements['uc_vp_simplexml']['severity'] = REQUIREMENT_ERROR;
+    $requirements['uc_vp_simplexml']['description'] = $t('VoguePay requires the PHP <a href="!simplexml_url">SimpleXML</a> library.', array('!simplexml_url' => 'http://www.php.net/simplexml'));
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_schema().
+ */
+function uc_voguepay_schema() {
+  $schema = array();
+
+  $schema['uc_vp_products'] = array(
+    'description' => 'Stores VoguePay information for products.',
+    'fields' => array(
+      'vid' => array(
+        'description' => 'The {uc_products}.vid.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'nid' => array(
+        'description' => 'The {uc_products}.nid.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'vp_salable' => array(
+        'description' => 'A flag indicating whether the product can be sold with VoguePay. 1 => Yes. 0 => No.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array('vid'),
+  );
+
+  $schema['uc_vp_orders'] = array(
+    'description' => 'Stores VoguePay orders information.',
+    'fields' => array(
+      'order_id' => array(
+        'description' => 'The {uc_orders}.order_id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'vp_order_number' => array(
+        'description' => 'The VoguePay order number.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '0',
+      ),
+      'financial_state' => array(
+        'description' => 'The order financial state.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'REVIEWING',
+      ),
+      'fulfillment_state' => array(
+        'description' => 'The order fulfillment state.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NEW',
+      ),
+      'vp_total' => array(
+        'description' => 'The order total according to VoguePay.',
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 5,
+        'not null' => TRUE,
+        'default' => 0.0,
+      ),
+    ),
+    'indexes' => array(
+      'vp_order_number' => array(array('vp_order_number', 20)),
+    ),
+    'primary key' => array('order_id'),
+  );
+
+  $schema['uc_vp_taxes'] = array(
+    'description' => 'Stores tax information for VoguePay.',
+    'fields' => array(
+      'zone' => array(
+        'description' => 'The 2-letter state abberviation.',
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'rate' => array(
+        'description' => 'The tax rate.',
+        'type' => 'float',
+        'not null' => TRUE,
+        'default' => 0.0,
+      ),
+      'tax_shipping' => array(
+        'description' => 'A flag indicating whether shipping costs are taxed.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('zone'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function uc_voguepay_install() {
+  drupal_install_schema('uc_voguepay');
+
+  $t = get_t();
+  db_query("INSERT INTO {uc_order_statuses} (order_status_id, title, state, weight, locked) VALUES ('in_voguepay_checkout', '". $t('In VoguePay') ."', 'in_checkout', -7, 1);");
+  db_query("INSERT INTO {uc_order_statuses} (order_status_id, title, state, weight, locked) VALUES ('chargeable', '". $t('Chargeable') ."', 'post_checkout', 2, 1);");
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function uc_voguepay_uninstall() {
+  drupal_uninstall_schema('uc_voguepay');
+
+  db_query("UPDATE {uc_order_statuses} SET locked = 0 WHERE order_status_id = 'in_voguepay_checkout' OR order_status_id = 'chargeable'");
+  db_query("DELETE FROM {variable} WHERE name LIKE 'uc_voguepay_%%'");
+}
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function uc_voguepay_update_last_removed() {
+  return 1;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function uc_voguepay_update_6000() {
+  $ret = array();
+
+  db_drop_primary_key($ret, 'uc_vp_products');
+  db_change_field($ret, 'uc_vp_products', 'vid', 'vid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0), array('primary key' => array('vid')));
+  db_change_field($ret, 'uc_vp_products', 'nid', 'nid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+  db_change_field($ret, 'uc_vp_products', 'vp_salable', 'vp_salable', array('type' => 'int', 'unsigned' => TRUE, 'size' => 'tiny', 'not null' => TRUE, 'default' => 1));
+
+  db_drop_primary_key($ret, 'uc_vp_orders');
+  db_change_field($ret, 'uc_vp_orders', 'order_id', 'order_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0), array('primary key' => array('order_id')));
+
+  // Postgres 8.3 supports ENUM types, but not everybody uses that.
+  // Change to VARCHAR since it's just as good.
+  db_change_field($ret, 'uc_vp_orders', 'financial_state', 'financial_state',
+    array(
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+      'default' => 'REVIEWING',
+    ));
+  db_change_field($ret, 'uc_vp_orders', 'fulfillment_state', 'fulfillment_state',
+    array(
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+      'default' => 'NEW',
+    ));
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function uc_voguepay_update_6001() {
+  variable_set('uc_voguepay_merchant_id' , variable_get('uc_voguepay_merchant_id' , ''));
+  variable_del('uc_voguepay_merchant_id');
+
+  variable_set('uc_voguepay_merchant_key', variable_get('uc_voguepay_merchant_key', ''));
+  variable_del('uc_voguepay_merchant_key');
+
+  return array();
+}
+
+// Removed obsolete update 6002.
+
+/**
+ * Implements hook_update_N().
+ *
+ * Changes currency fields to numeric(16,5).
+ */
+function uc_voguepay_update_6003() {
+  $ret = array();
+
+  db_change_field($ret, 'uc_vp_orders', 'vp_total', 'vp_total', array('type' => 'numeric', 'precision' => 16, 'scale' => 5, 'not null' => TRUE, 'default' => 0.0));
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Deletes old shipping settings.
+ */
+function uc_voguepay_update_6004() {
+  $ret = array();
+
+  $ret[] = update_sql("DELETE FROM {variable} WHERE name LIKE 'uc_voguepay_shipping_%%'");
+
+  return $ret;
+}
