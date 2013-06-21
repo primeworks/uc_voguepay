@@ -144,3 +144,39 @@ function uc_voguepay_merchant_calculation() {
   exit();
   // So there!
 }
+
+/**
+*Helper code for VoguePay
+*
+*/
+
+function _uc_voguepay_send_to_vp( $type, $param ) {
+  $vp_url = "https://www.voguepay.com";
+  if( $type == 'init' ) $vp_url .= '/pay';
+  else if( $type == 'complete' ) $vp_url .= '/pay';
+  else return array('curl_status' => 'invalid');
+
+  $data = '';
+  foreach ($param as $key => $value) {
+    $data .= $key .'='. urlencode(str_replace(',', '', $value)) .'&';
+  }
+
+  $data = substr($data, 0, -1);
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $vp_url);
+  curl_setopt($ch, CURLOPT_VERBOSE, 0);
+  curl_setopt($ch, CURLOPT_POST, 1);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, variable_get('uc_voguepay_curl_ssl_verifypeer',1));
+  curl_setopt($ch, CURLOPT_CAINFO, variable_get('uc_voguepay_curl_ca_cert_bundle',''));
+  curl_setopt($ch, CURLOPT_NOPROGRESS, 1);
+  curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
+  $response = json_decode(curl_exec($ch));
+  if ($error = curl_error($ch)) {
+    $return = array('curl_status' => 'failed', 'error' => $error );
+  }
+  else $return = array('curl_status' => 'success', 'response' => $response );
+  curl_close($ch);
+  return $return;
+} // end - _uc_voguepay_send_to_vp

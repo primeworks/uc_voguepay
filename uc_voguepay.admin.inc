@@ -371,15 +371,16 @@ function uc_voguepay_terminal_form($form_state, $order, $amount = 0) {
  * @see uc_voguepay_terminal_form()
  * @see uc_voguepay_terminal_form_submit()
  */
+ // TODO: Must make this work with VoguePay
 function uc_voguepay_terminal_form_validate($form, &$form_state) {
   if (!is_numeric($form_state['values']['amount']) || $form_state['values']['amount'] == 0) {
     form_set_error('amount', t('You must enter a number for the amount.'));
   }
   if ($form_state['values']['action'] == 'charge' && $form_state['values']['amount'] > $form_state['values']['gc_balance']) {
-    form_set_error('amount', t('Google does not allow charges greater than the balance.'));
+    form_set_error('amount', t('VoguePay does not allow charges greater than the balance.'));
   }
   if ($form_state['values']['action'] == 'refund' && $form_state['values']['amount'] > $form_state['values']['gc_total'] - $form_state['values']['gc_balance']) {
-    form_set_error('amount', t('Google does not allow refunds greater than the amount already charged.'));
+    form_set_error('amount', t('VoguePay does not allow refunds greater than the amount already charged.'));
   }
   if ($form_state['values']['action'] == 'refund' && empty($form_state['values']['reason'])) {
     form_set_error('reason', t('A reason for refunding the customer is required.'));
