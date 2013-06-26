@@ -152,15 +152,6 @@ function uc_voguepay_theme() {
  * Implements hook_form_alter().
  */
 function uc_voguepay_form_alter(&$form, $form_state, $form_id) {
-dsm($form_id);
-
-// Get order
-
-
-
-//END
-$order = variable_get('uc_voguepay_order', '');
-dsm($order);
   if (uc_product_is_product_form($form)) {
     $node = $form['#node'];
     if (is_object($node) && $form_id == $node->type .'_node_form' && uc_product_is_product($node->type)) {
@@ -192,6 +183,10 @@ dsm($order);
     $form['#submit'][] = 'uc_voguepay_notify_update';
   }
   elseif ($form_id == 'uc_cart_checkout_review_form') {
+    $form['submit'] = array (
+        '#disabled' => TRUE,
+        '#type' => 'hidden',
+    );
      // Get price
     $contents = uc_cart_get_contents();
   foreach ($contents as $item) {
@@ -217,11 +212,7 @@ $subtotal += uc_price($price_info, $context);
   //print uc_price($subtotal, $context);
 
 
-    // Fetch the default parameters
-        //$merchant_id= variable_get('uc_voguepay_merchant_id','');
-        $alternate_button = variable_get('vogue_custom','');
-        $button_color = variable_get('vogue_color','blue');
-        $button = empty($alternate_button) ? 'http://voguepay.com/images/buttons/buynow_'.$button_color.'.png' : $alternate_button ;
+
 
 global $base_url;
      //print dsm(var_dump($product));
@@ -271,42 +262,33 @@ if (variable_get('uc_voguepay_mode', 'checkout') == 'checkout') {
 
           // print $f;
 
-     $form['vp'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('VaultNoir Advanced Settings'),
-        '#description' => t('The settings below are advanced configuration items to modify the behavior of the VaultNoir payment module.'),
-        '#collapsible' => FALSE,
-        '#collapsed' => FALSE,
-      );
 
-      $form['vp']['#method'] = 'POST';
-      $form['vp']['#action'] = url('https://voguepay.com/pay/');
-  $form['vp']['vp_memo'] = array(
+  $form['vp_memo'] = array(
     '#value' => $pname,
     '#name' => t('memo'),
     '#type' => 'hidden',
   );
-  $form['vp']['item_1'] = array(
+  $form['item_1'] = array(
   '#value' => $pname,
   '#type' => 'hidden',
   '#name' => 'item_1',
   );
-  $form['vp']['vp_description'] = array(
+  $form['vp_description'] = array(
   '#value' => $summary,
   '#type' => 'hidden',
   '#name' => 'description_1',
   );
-  $form['vp']['vp_price'] = array(
+  $form['vp_price'] = array(
   '#value' => $price,
   '#type' => 'hidden',
   '#name' => 'price_1',
   );
-  $form['vp']['vp_total'] = array(
+  $form['vp_total'] = array(
   '#value' => $price,
   '#type' => 'hidden',
   '#name' => 'total',
   );
-  $form['vp']['vp_submit'] = array(
+  $form['vp_submit'] = array(
     '#value' => '<form method="POST" action="https://voguepay.com/pay/">
             <input type="hidden" name="v_merchant_id" value="'.$merchant_id.'" />
             <input type="hidden" name="memo" value="'.$pname.'" />
@@ -339,152 +321,7 @@ if (variable_get('uc_voguepay_mode', 'checkout') == 'checkout') {
   elseif ($form_id == 'uc_store_format_settings_form') {
     $form['currency']['uc_currency_code']['#description'] .= ' '. t('VoguePay only accepts the following currencies: @list', array('@list' => implode(', ', _uc_voguepay_currency_codes())));
   }
-  elseif ($form_id == 'uc_cart_checkout_form') {
 
-    // Get price
-    $contents = uc_cart_get_contents();
-  foreach ($contents as $item) {
-
-    $price_info = array(
-      'price' => $item->price,
-      'qty' => $item->qty,
-    );
-
-    $context['revision'] = 'altered';
-    $context['type'] = 'cart_item';
-    $context['subject'] = array(
-      'cart' => $contents,
-      'cart_item' => $item,
-      'node' => node_load($item->nid),
-    );
-
-
-$subtotal += uc_price($price_info, $context);
-  }
-
-  $context = array('revision' => 'themed', 'type'  => 'amount');
-  //print uc_price($subtotal, $context);
-
-
-    // Fetch the default parameters
-        //$merchant_id= variable_get('uc_voguepay_merchant_id','');
-        $alternate_button = variable_get('vogue_custom','');
-        $button_color = variable_get('vogue_color','blue');
-        $button = empty($alternate_button) ? 'http://voguepay.com/images/buttons/buynow_'.$button_color.'.png' : $alternate_button ;
-
-global $base_url;
-     //print dsm(var_dump($product));
-$merchant_id = variable_get('uc_voguepay_merchant_id', '');
-//print dsm($merchant_id);
-$product = variable_get('uc_voguepay_cart_form', '');
-//print dsm($item->title);
-//print dsm(item->taxonomy->name);
-//print dsm(floor($item->price));
-$price = floor($item->price);
-//print dsm($item->description);
-$summary = $item->title;
-$pname = $item->title;
-$checkout_url = 'https://voguepay.com/pay/';
-
-
-/**
- * Code to parse cost to VoguePay
- */
-if (variable_get('uc_voguepay_mode', 'checkout') == 'checkout') {
-    $merchant_id = variable_get('uc_voguepay_merchant_id', '');
-  }
-  else {
-    $merchant_id = variable_get('uc_voguepay_test_merchant_id', '');
-  }
-
-        // Fetch the default parameters
-        //$merchant_id= variable_get('uc_voguepay_merchant_id','');
-        $alternate_button = variable_get('vogue_custom','');
-        $button_color = variable_get('vogue_color','blue');
-        $button = empty($alternate_button) ? 'http://voguepay.com/images/buttons/buynow_'.$button_color.'.png' : $alternate_button ;
-
-
-
-
-     $f = '<form method="POST" action="https://voguepay.com/pay/">
-            <input type="hidden" name="v_merchant_id" value="'.$merchant_id.'" />
-            <input type="hidden" name="memo" value="'.$pname.'" />
-            <input type="hidden" name="item_1" value="'.$pname.'" />
-            <input type="hidden" name="description_1" value="'.$summary.'" />
-            <input type="hidden" name="price_1" value="'.$price.'" />
-            <input type="hidden" name="total" value="'.$price.'" />
-            <input type="hidden" name="notify_url" value="'.$base_url.'/uc_voguepay/notify" />
-        <input type="hidden" name="success_url" value="'.$base_url.'/uc_voguepay/complete" />
-            <input type="image" src="'.$button.'" alt="Pay with VoguePay" />
-            </form>';
-
-          // print $f;
-
-     $form['vp'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('VaultNoir Advanced Settings'),
-        '#description' => t('The settings below are advanced configuration items to modify the behavior of the VaultNoir payment module.'),
-        '#collapsible' => FALSE,
-        '#collapsed' => FALSE,
-      );
-
-      $form['vp']['#method'] = 'POST';
-      $form['vp']['#action'] = url('https://voguepay.com/pay/');
-  $form['vp']['vp_memo'] = array(
-    '#value' => $pname,
-    '#name' => t('memo'),
-    '#type' => 'hidden',
-  );
-  $form['vp']['item_1'] = array(
-  '#value' => $pname,
-  '#type' => 'hidden',
-  '#name' => 'item_1',
-  );
-  $form['vp']['vp_description'] = array(
-  '#value' => $summary,
-  '#type' => 'hidden',
-  '#name' => 'description_1',
-  );
-  $form['vp']['vp_price'] = array(
-  '#value' => $price,
-  '#type' => 'hidden',
-  '#name' => 'price_1',
-  );
-  $form['vp']['vp_total'] = array(
-  '#value' => $price,
-  '#type' => 'hidden',
-  '#name' => 'total',
-  );
-  $form['vp']['vp_submit'] = array(
-    '#value' => '<form method="POST" action="https://voguepay.com/pay/">
-            <input type="hidden" name="v_merchant_id" value="'.$merchant_id.'" />
-            <input type="hidden" name="memo" value="'.$pname.'" />
-            <input type="hidden" name="item_1" value="'.$pname.'" />
-            <input type="hidden" name="description_1" value="'.$summary.'" />
-            <input type="hidden" name="price_1" value="'.$price.'" />
-            <input type="hidden" name="total" value="'.$price.'" />
-            <input type="hidden" name="notify_url" value="'.$base_url.'/uc_voguepay/notify" />
-        <input type="hidden" name="success_url" value="'.$base_url.'/uc_voguepay/complete" />
-            <input type="image" src="'.$button.'" alt="Pay with VoguePay" /></form>',
-    '#type' => 'form',
-    '#submit' => '',
-  );
-
-
-  $form['buy'] = array(
-
-      '#type' => 'item',
-
-      //'#title' => t('Buy'),
-
-      '#value' => $f,
-
-    );
-    $form['submit_help'] = array(
-  //TODO: Get the help link for this topic from VoguePay website
-    '#value' => '<br /><a href="javascript:void(window.open(\' https://voguepay.com\',\'whatisvoguepay\',\'scrollbars=0,resizable=1,directories=0,height=250,width=400\'));" OnMouseOver="return window.status = \''. addslashes(t('What is VoguePay?')) .'\';" OnMouseOut="return window.status = \'\';">'. addslashes(t('What is VoguePay?')) .'</a>',
-  );
-  }
 }
 
 /**
@@ -778,115 +615,7 @@ function uc_voguepay_cart_form() {
     break;
   }
 
-  $form['submit_image'] = array(
-    '#value' => ($disable ? '<img ' : '<input name="submit" type="image" ') .'alt="'. t('VoguePay') .'" title="'. t('Fast checkout through Google.') .'" src="'. $checkout_url .'/buttons/checkout.gif?merchant_id='. $merchant_id .'&w='. $width .'&h='. $height .'&style='. variable_get('uc_voguepay_button_color', 'trans') .'&variant='. ($disable ? 'disabled' : 'text') .'&loc=en_US" height="'. $height .'" width="'. $width .'" />',
-  );
 
-
-
-//print dsm(var_dump($product));
-$merchant_id = variable_get('uc_voguepay_merchant_id', '');
-//print dsm($merchant_id);
-//print dsm($product->title);
-//print dsm($product->taxonomy->name);
-//print dsm(floor($product->sell_price));
-$price = floor($product->sell_price);
-//print dsm($product->teaser);
-$summary = $product->teaser;
-$pname = $product->title;
-$checkout_url = 'https://voguepay.com/pay/';
-
-/**
- * Code to parse cost to VoguePay
- */
-if (variable_get('uc_voguepay_mode', 'checkout') == 'checkout') {
-    $merchant_id = variable_get('uc_voguepay_merchant_id', '');
-  }
-  else {
-    $merchant_id = variable_get('uc_voguepay_test_merchant_id', '');
-  }
-
-        // Fetch the default parameters
-        //$merchant_id= variable_get('uc_voguepay_merchant_id','');
-        $alternate_button = variable_get('vogue_custom','');
-        $button_color = variable_get('vogue_color','blue');
-        $button = empty($alternate_button) ? 'http://voguepay.com/images/buttons/buynow_'.$button_color.'.png' : $alternate_button ;
-
-
-
-            $f = '<form method="POST" action="https://voguepay.com/pay/">
-            <input type="hidden" name="v_merchant_id" value="'.$merchant_id.'" />
-            <input type="hidden" name="memo" value="'.$pname.'" />
-            <input type="hidden" name="item_1" value="'.$pname.'" />
-            <input type="hidden" name="description_1" value="'.$summary.'" />
-            <input type="hidden" name="price_1" value="'.$price.'" />
-            <input type="hidden" name="total" value="'.$price.'" />
-            <input type="image" src="'.$button.'" alt="Pay with VoguePay" />
-            </form>';
-
-           print $f;
-
-
-   $form['vp'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('VaultNoir Advanced Settings'),
-        '#description' => t('The settings below are advanced configuration items to modify the behavior of the VaultNoir payment module.'),
-        '#collapsible' => FALSE,
-        '#collapsed' => FALSE,
-      );
-
-      $form['vp']['#method'] = 'POST';
-      $form['vp']['#action'] = url('https://voguepay.com/pay/');
-  $form['vp']['vp_memo'] = array(
-    '#value' => $pname,
-    '#name' => t('memo'),
-    '#type' => 'hidden',
-  );
-  $form['vp']['item_1'] = array(
-  '#value' => $pname,
-  '#type' => 'hidden',
-  '#name' => 'item_1',
-  );
-  $form['vp']['vp_description'] = array(
-  '#value' => $summary,
-  '#type' => 'hidden',
-  '#name' => 'description_1',
-  );
-  $form['vp']['vp_price'] = array(
-  '#value' => $price,
-  '#type' => 'hidden',
-  '#name' => 'price_1',
-  );
-  $form['vp']['vp_total'] = array(
-  '#value' => $price,
-  '#type' => 'hidden',
-  '#name' => 'total',
-  );
-  $form['vp']['vp_submit'] = array(
-    '#value' => '<form method="POST" action="https://voguepay.com/pay/">
-            <input type="hidden" name="v_merchant_id" value="'.$merchant_id.'" />
-            <input type="hidden" name="memo" value="'.$pname.'" />
-            <input type="hidden" name="item_1" value="'.$pname.'" />
-            <input type="hidden" name="description_1" value="'.$summary.'" />
-            <input type="hidden" name="price_1" value="'.$price.'" />
-            <input type="hidden" name="total" value="'.$price.'" />
-            <input type="image" src="'.$button.'" alt="Pay with VoguePay" /></form>',
-    '#type' => 'form',
-    '#submit' => '',
-  );
-  $form['buy'] = array(
-
-      '#type' => 'item',
-
-      //'#title' => t('Buy'),
-
-      '#value' => $f,
-
-    );
-    $form['submit_help'] = array(
-  //TODO: Get the help link for this topic from VoguePay website
-    '#value' => '<br /><a href="javascript:void(window.open(\' https://voguepay.com\',\'whatisvoguepay\',\'scrollbars=0,resizable=1,directories=0,height=250,width=400\'));" OnMouseOver="return window.status = \''. addslashes(t('What is VoguePay?')) .'\';" OnMouseOut="return window.status = \'\';">'. addslashes(t('What is VoguePay?')) .'</a>',
-  );
 
   $form['analyticsdata'] = array(
     '#type' => 'hidden',
