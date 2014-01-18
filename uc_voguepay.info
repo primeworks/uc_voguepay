@@ -1,0 +1,7 @@
+; $Id$
+name = Ubercart VoguePay
+description = Module for connecting VoguePay to Ubercart.
+dependencies[] = uc_store
+dependencies[] = uc_payment
+package = Ubercart - payment
+core = 6.x
